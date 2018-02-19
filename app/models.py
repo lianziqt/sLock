@@ -9,20 +9,45 @@ from flask_login import UserMixin, AnonymousUserMixin
 from . import db, login_manager
 
 class Permission:
-    FOLLOW = 1
-    COMMENT = 2
-    WRITE = 4
-    MODERATE = 8
-    ADMIN = 16
+    COMMOM = 1
+    DORLEADER = 2
+    MANAGER = 4
+    ADMIN = 8
 
 class Dormitory(db.model):
     __tablename__='dormitory'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(10), unique=True)
     password_hash = db.Column(db.String(128))
-    bed_num = db.Column(db.Integer)
-    def __init__(self, *args):
-        super(Dormitory, self).__init__(*args))
+    building_id = db.Column(db.Integer, db.ForeignKey('managers.id'))
+    messages = db.relationship('Message', backref='author', lazy='dynamic')
+    students = db.relationship('Student', backref='dor', lazy='dynamic')
+
+    def __init__(self, **kwargs):
+        super(Dormitory, self).__init__(**kwargs)
+
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    @staticmethod
+    def reset_password(token, new_password):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token.encode('utf-8'))
+        except:
+            return False
+        dormitory = Dormitory.query.get(data.get('reset'))
+        if dormitory is None:
+            return False
+        dormitory.password = new_password
+        db.session.add(dormitory)
+        return True
+
 
 class Manager(db.model):
     __tablename__ = 'managers'
@@ -31,10 +56,33 @@ class Manager(db.model):
     name = db.Column(db.String(10))
     password_hash = db.Column(db.String(128))
     apartment_name = db.Column(db.Integer)
+    dormitories = db.relationship('Dormitory', backref='manager')
     #外键
 
-    def __init__(self, *args):
-        super(Manager, self).__init__(*args))
+    def __init__(self, **kwargs):
+        super(Manager, self).__init__(**kwargs)
+
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    @staticmethod
+    def reset_password(token, new_password):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token.encode('utf-8'))
+        except:
+            return False
+        manager = Manager.query.get(data.get('reset'))
+        if manager is None:
+            return False
+        user.password = new_password
+        db.session.add(user)
+        return True
         
 class Student(db.model):
     __tablename__ = 'students'
@@ -42,21 +90,22 @@ class Student(db.model):
     num = db.Column(db.String(16))
     name = db.Column(db.String(10))
     sex = db.Column(db.Integer)
-    door_id = db.Column(db.Integer)#######
+    door_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'))
     start_year = db.Column(db.Integer)
-    def __init__(self, *args):
-        super(Student,db.model.__init__(*args))
+    def __init__(self, **kwargs):
+        super(Student, self).__init__(**kwargs)
 
 
 class Record(db.model):
     __tablename__ = 'records'
-    door_id = db.Column(db.Integer)###########
-    time = db.Column(db.DateTime(), default=datetime.utcnow)
-    student_id = db.Column(db.Integer)##########
+    door_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'), primary_key=True)###########
+    time = db.Column(db.DateTime(), default=datetime.utcnow, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'))##########
     unlock_way = db.Column(db.Integer)
     result = db.Column(db.Boolean)
-    def __init__(self, *args):
-        super(Record,db.model.__init__(*args))
+
+    def __init__(self, **kwargs):
+        super(Record, self).__init__(**kwargs)
         
 
 class Key(db.model):
@@ -67,18 +116,19 @@ class Key(db.model):
     fingerprint = db.Column(db.String(255), unique=True)
     voice = db.Column(db.String(255), unique=True)
     face = db.Column(db.String(255), unique=True)
-    def __init__(self, *args):
-        super(Key,db.model.__init__(*args))
+
+    def __init__(self, **kwargs):
+        super(Key, self).__init__(**kwargs)
 
 class Message(db.model):
     __tablename__ = 'messages'
     id = db.Column(db.Integer, primary_key=True)###########
-    student_id = db.Column(db.Integer)
-    sort = db.Column(db.Integer)
-    time = db.Column(db.DateTime(), default=datetime.utcnow)
+    dormitory_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'))
+    typee = db.Column(db.Integer)
+    time = db.Column(db.DateTime(), index=True,  default=datetime.utcnow)
     details = db.Column(db.Text())
 
-    def __init__(self, *args):
-        super(Message,db.model.__init__(*args))
+    def __init__(self, **kwargs):
+        super(Message, self).__init__(**kwargs)
         
         
