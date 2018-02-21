@@ -34,6 +34,9 @@ class Dormitory(db.model):
     def password(self, password):
         self.password_hash = generate_password_hash(password)
 
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
     @staticmethod
     def reset_password(token, new_password):
         s = Serializer(current_app.config['SECRET_KEY'])
@@ -66,6 +69,10 @@ class Manager(db.model):
     def password(self):
         raise AttributeError('password is not a readable attribute')
 
+    def verify_password(self, password):
+            return check_password_hash(self.password_hash, password)
+
+
     @password.setter
     def password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -87,7 +94,7 @@ class Manager(db.model):
 class Student(db.model):
     __tablename__ = 'students'
     id = db.Column(db.Integer, primary_key=True)
-    num = db.Column(db.String(16))
+    studentid = db.Column(db.String(16))
     name = db.Column(db.String(10))
     sex = db.Column(db.Integer)
     door_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'))
