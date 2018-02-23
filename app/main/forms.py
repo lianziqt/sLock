@@ -7,13 +7,13 @@ from flask_pagedown.fields import PageDownField
 from ..models import Message
 
 class MseeageForm(FlaskForm):
-    detals = PageDownField("What's on your mind?", validators=[DataRequired()])
+    details = PageDownField("What's on your mind?", validators=[DataRequired()])
     typee = SelectField("信息类别", validators=[DataRequired()], choices=[('1','水'),('2','电'),('3','气'),('4','其它类'),('5','非维修申请')])
     submit = SubmitField('Submit')
 
 class RecordSearchForm(FLaskForm):
     dor_name = StringField("宿舍名")
-    student = StringField("学生学号")
+    #student = StringField("学生学号")
     time = DateField('开锁日期')
     submit = SubmitField("提交")
 

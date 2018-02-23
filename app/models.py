@@ -20,7 +20,6 @@ class Role(db.Model):
     name = db.Column(db.String(64), unique=True)
     default = db.Column(db.Boolean, default=False, index=True)
     permissions = db.Column(db.Integer)
-    student = db.relationship('Student', backref='role', lazy='dynamic')
     dormitory = db.relationship('Dormitory', backref='role', lazy='dynamic')
     manager = db.relationship('Manager', backref='role', lazy='dynamic')
 
@@ -32,12 +31,11 @@ class Role(db.Model):
     @staticmethod
     def insert_roles():
         roles = {
-            'Student': [Permission.COMMOM],
             'Dromitory': [Permission.COMMOM, Permission.DORLEADER],
             'Administrator': [Permission.COMMOM, Permission.DORLEADER,
                               Permission.ADMIN],
         }
-        default_role = 'Student'
+        default_role = 'Dormitory'
         for r in roles:
             role = Role.query.filter_by(name=r).first()
             if role is None:
@@ -73,7 +71,8 @@ class Dormitory(db.model):
     password_hash = db.Column(db.String(128))
     lock_online = db.Column(db.Boolean)
     student_num = db.Column(db.Integer)
-    building_id = db.Column(db.Integer, db.ForeignKey('managers.id'))
+    manager_id = db.Column(db.Integer, db.ForeignKey('managers.id'))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     messages = db.relationship('Message', backref='author', lazy='dynamic')
     students = db.relationship('Student', backref='dor', lazy='dynamic')
 
@@ -119,6 +118,7 @@ class Manager(db.model):
     name = db.Column(db.String(10))
     password_hash = db.Column(db.String(128))
     apartment_name = db.Column(db.Integer)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     dormitories = db.relationship('Dormitory', backref='manager')
     #外键
 
@@ -164,7 +164,7 @@ class Student(db.model):
     studentid = db.Column(db.String(16))
     name = db.Column(db.String(10))
     sex = db.Column(db.Integer)
-    door_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'))
+    dormitory_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'))
     start_year = db.Column(db.Integer)
     def __init__(self, **kwargs):
         super(Student, self).__init__(**kwargs)
@@ -178,7 +178,8 @@ class Student(db.model):
 
 class Record(db.model):
     __tablename__ = 'records'
-    door_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'), primary_key=True)###########
+    manager_id = db.Column(db.Integer, db.ForeignKey('manager.id'), primary_key=True)
+    dormitory_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'), primary_key=True)###########
     time = db.Column(db.DateTime(), default=datetime.utcnow, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'))##########
     unlock_way = db.Column(db.Integer)
@@ -204,10 +205,11 @@ class Message(db.model):
     __tablename__ = 'messages'
     id = db.Column(db.Integer, primary_key=True)###########
     dormitory_id = db.Column(db.Integer, db.ForeignKey('dormitory.id'))
+    manager_id = db.Column(db.Integer, db.ForeignKey('manager.id'))
     typee = db.Column(db.Integer)
     time = db.Column(db.DateTime(), index=True,  default=datetime.utcnow)
     details = db.Column(db.Text())
-    complete = db.Column(db.Boolean())
+    complete = db.Column(db.Boolean(),default=False)
 
     def __init__(self, **kwargs):
         super(Message, self).__init__(**kwargs)
